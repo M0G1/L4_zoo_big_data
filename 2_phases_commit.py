@@ -33,7 +33,19 @@ class Client(Thread):
 
 
 class Coordinator():
-    def main(self):
+    @staticmethod
+    def solution(coord):
+        clients = coord.get_children("/coord/crd")
+        commits, aborts = 0, 0
+        for clt in clients:
+            commits += int(coord.get(f"/coord/crd/{clt}")[0] == b"commit")
+            aborts += int(coord.get(f"/coord/crd/{clt}")[0] == b"abort")
+
+        for clt in clients:
+            coord.set(f"/coord/crd/{clt}", b"commit" if commits > aborts else b"abort")
+
+    @classmethod
+    def main(cls):
         coord = KazooClient()
         coord.start()
 
@@ -44,23 +56,13 @@ class Coordinator():
         coord.create("/coord/crd")
         n_clients = 5
 
-        def solution():
-            clients = coord.get_children("/coord/crd")
-            commits, aborts = 0, 0
-            for clt in clients:
-                commits += int(coord.get(f"/coord/crd/{clt}")[0] == b"commit")
-                aborts += int(coord.get(f"/coord/crd/{clt}")[0] == b"abort")
-
-            for clt in clients:
-                coord.set(f"/coord/crd/{clt}", b"commit" if commits > aborts else b"abort")
-
         @coord.ChildrenWatch("/coord/crd")
         def check_clients(clients):
             if len(clients) < n_clients:
                 print(f"Waiting others clients: {clients}")
             elif len(clients) == n_clients:
                 print("Check clients")
-                solution()
+                cls.solution(coord)
 
         for x in range(5):
             begin = Client("/coord/crd", x)
@@ -69,4 +71,3 @@ class Coordinator():
 
 if __name__ == "__main__":
     Coordinator().main()
-
