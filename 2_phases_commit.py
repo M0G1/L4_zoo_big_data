@@ -70,5 +70,4 @@ class Coordinator():
 
 
 if __name__ == "__main__":
-    # Coordinator().main()
-    pass
+    Coordinator().main()
